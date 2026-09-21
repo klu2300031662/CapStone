@@ -1,0 +1,28 @@
+server:
+  port: ${PORT:8081}
+
+spring:
+  application:
+    name: backend-service
+
+backend:
+  simulated-delay-ms: ${SIMULATED_DELAY_MS:0}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics
+  endpoint:
+    prometheus:
+      enabled: true
+    health:
+      show-details: always
+  metrics:
+    tags:
+      application: ${spring.application.name}
+
+logging:
+  level:
+    root: INFO
+    com.capstone.backend: INFO

@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Adaptive Traffic Management System - Baseline Control Center</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg-dark: #0f172a;
+            --card-bg: rgba(30, 41, 59, 0.7);
+            --card-border: rgba(255, 255, 255, 0.1);
+            --primary: #38bdf8;
+            --primary-glow: rgba(56, 189, 248, 0.3);
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(56, 189, 248, 0.12) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(239, 68, 68, 0.12) 0px, transparent 50%);
+            color: var(--text-main);
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 1280px;
+            margin: 0 auto;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 1.5rem;
+            margin-bottom: 2rem;
+            border-bottom: 1px solid var(--card-border);
+        }
+
+        .brand h1 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #38bdf8, #818cf8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .brand p {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            margin-top: 0.25rem;
+        }
+
+        .status-pills {
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        .pill {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: rgba(30, 41, 59, 0.8);
+            border: 1px solid var(--card-border);
+            padding: 0.5rem 1rem;
+            border-radius: 9999px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--success);
+            box-shadow: 0 0 8px var(--success);
+        }
+
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .card {
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--card-border);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.25rem;
+        }
+
+        .card-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        .badge {
+            padding: 0.25rem 0.6rem;
+            border-radius: 0.375rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .badge-blue { background: rgba(56, 189, 248, 0.15); color: var(--primary); }
+        .badge-amber { background: rgba(245, 158, 11, 0.15); color: var(--warning); }
+        .badge-red { background: rgba(239, 68, 68, 0.15); color: var(--danger); }
+
+        .btn {
+            background: linear-gradient(135deg, #0284c7, #2563eb);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.25rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            width: 100%;
+            justify-content: center;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px var(--primary-glow);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #dc2626, #b91c1c);
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--card-border);
+            color: var(--text-main);
+        }
+
+        .btn-outline:hover {
+            background: rgba(255, 255, 255, 0.05);
+            transform: none;
+        }
+
+        .slider-group {
+            margin: 1.25rem 0;
+        }
+
+        .slider-header {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            margin-bottom: 0.5rem;
+        }
+
+        input[type=range] {
+            width: 100%;
+            accent-color: var(--primary);
+        }
+
+        .metric-value {
+            font-size: 2.25rem;
+            font-weight: 700;
+            font-family: 'JetBrains Mono', monospace;
+            margin: 0.5rem 0;
+        }
+
+        .metric-sub {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .log-terminal {
+            background: rgba(15, 23, 42, 0.9);
+            border: 1px solid var(--card-border);
+            border-radius: 0.75rem;
+            padding: 1rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            height: 220px;
+            overflow-y: auto;
+            color: #cbd5e1;
+        }
+
+        .log-line {
+            margin-bottom: 0.4rem;
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        .log-time { color: #64748b; }
+        .log-200 { color: var(--success); }
+        .log-429 { color: var(--danger); font-weight: 600; }
+
+        .links-row {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .links-row a {
+            flex: 1;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="brand">
+                <h1>Adaptive Traffic Management System</h1>
+                <p>Engineering Capstone Project • Milestone 1 (Static Rate Limit Baseline)</p>
+            </div>
+            <div class="status-pills">
+                <div class="pill"><div class="dot"></div> API Gateway :8082</div>
+                <div class="pill"><div class="dot"></div> Backend Service :8081</div>
+                <div class="pill"><div class="dot"></div> Limit: <span id="pill-limit">10 RPS</span></div>
+            </div>
+        </header>
+
+        <div class="grid-3">
+            <!-- Card 1: Traffic Generator -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">⚡ Interactive Traffic Generator</span>
+                    <span class="badge badge-blue">k6 Simulator</span>
+                </div>
+                <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">
+                    Simulate real-time client traffic spikes to test baseline rate-limiting behavior.
+                </p>
+
+                <div class="slider-group">
+                    <div class="slider-header">
+                        <span>Target Load Rate</span>
+                        <span id="rate-value" style="color: var(--primary); font-weight: 600;">20 req/sec</span>
+                    </div>
+                    <input type="range" id="rate-slider" min="2" max="60" value="20" oninput="updateRateLabel(this.value)">
+                </div>
+
+                <div style="display: flex; gap: 0.75rem; margin-top: 1.5rem;">
+                    <button class="btn" id="burst-btn" onclick="startTrafficBurst()">Start Live Burst</button>
+                    <button class="btn btn-outline" onclick="stopTrafficBurst()">Stop</button>
+                </div>
+            </div>
+
+            <!-- Card 2: Live Metrics Stats -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">📊 Live Baseline Metrics</span>
+                    <span class="badge badge-amber">Static Policy</span>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div>
+                        <div class="metric-sub">Accepted Requests (200 OK)</div>
+                        <div class="metric-value" id="stat-200" style="color: var(--success);">0</div>
+                    </div>
+                    <div>
+                        <div class="metric-sub">Rejected (429 Too Many)</div>
+                        <div class="metric-value" id="stat-429" style="color: var(--danger);">0</div>
+                    </div>
+                </div>
+                <div style="margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid var(--card-border);">
+                    <div class="metric-sub">Rejection Rate</div>
+                    <div style="font-size: 1.25rem; font-weight: 600; color: var(--warning);" id="stat-rejection-rate">0.0%</div>
+                </div>
+            </div>
+
+            <!-- Card 3: Backend Health & Delay Control -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">🛠️ Backend Latency Control</span>
+                    <span class="badge badge-red">Experiment 2</span>
+                </div>
+                <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">
+                    Test static limiter behavior under downstream service degradation.
+                </p>
+
+                <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+                    <button class="btn btn-outline" style="flex: 1;" onclick="testSingleEndpoint('/api/products')">Test /products</button>
+                    <button class="btn btn-outline" style="flex: 1;" onclick="testSingleEndpoint('/api/orders')">Test /orders</button>
+                    <button class="btn btn-outline" style="flex: 1;" onclick="testSingleEndpoint('/api/health')">Test /health</button>
+                </div>
+
+                <div style="margin-top: 0.75rem;">
+                    <button class="btn btn-outline" style="border-color: var(--warning); color: var(--warning);" onclick="alert('To test slow backend scenario, start backend with SIMULATED_DELAY_MS=1000 or run .\\load-test\\run_experiments.ps1')">
+                        🐌 Slow Backend Scenario Info
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Real-time Chart & Log Grid -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+            <!-- Real-time Chart -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">📈 Real-Time Throughput Graph</span>
+                    <span style="font-size: 0.8rem; color: var(--text-muted);">Window: 30s</span>
+                </div>
+                <div style="height: 220px;">
+                    <canvas id="trafficChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Live Response Log Terminal -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">🖥️ Gateway Live Response Console</span>
+                    <button class="btn btn-outline" style="width: auto; padding: 0.25rem 0.75rem; font-size: 0.75rem;" onclick="clearLogs()">Clear</button>
+                </div>
+                <div class="log-terminal" id="log-console">
+                    <div class="log-line">
+                        <span class="log-time">[SYSTEM]</span>
+                        <span>Interactive Gateway Control Panel Initialized. Ready to test baseline static rate limits.</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Links to DevOps Observability Stack -->
+        <div class="links-row">
+            <a href="http://localhost:3000" target="_blank">
+                <button class="btn btn-outline" style="width: 100%;">
+                    📊 Open Grafana Dashboards (:3000)
+                </button>
+            </a>
+            <a href="http://localhost:9090" target="_blank">
+                <button class="btn btn-outline" style="width: 100%;">
+                    🔥 Open Prometheus Scraper (:9090)
+                </button>
+            </a>
+            <a href="/actuator/prometheus" target="_blank">
+                <button class="btn btn-outline" style="width: 100%;">
+                    ⚙️ View Gateway Actuator Metrics
+                </button>
+            </a>
+        </div>
+    </div>
+
+    <script>
+        let burstInterval = null;
+        let count200 = 0;
+        let count429 = 0;
+
+        function updateRateLabel(val) {
+            document.getElementById('rate-value').innerText = val + ' req/sec';
+        }
+
+        function logMessage(status, text) {
+            const consoleEl = document.getElementById('log-console');
+            const timeStr = new Date().toLocaleTimeString();
+            const line = document.createElement('div');
+            line.className = 'log-line';
+            
+            const timeSpan = `<span class="log-time">[${timeStr}]</span>`;
+            const statusClass = status === 200 ? 'log-200' : (status === 429 ? 'log-429' : '');
+            const statusSpan = `<span class="${statusClass}">HTTP ${status}</span>`;
+            
+            line.innerHTML = `${timeSpan} ${statusSpan} - ${text}`;
+            consoleEl.appendChild(line);
+            consoleEl.scrollTop = consoleEl.scrollHeight;
+        }
+
+        function clearLogs() {
+            document.getElementById('log-console').innerHTML = '';
+        }
+
+        async function sendRequest() {
+            const endpoints = ['/api/products', '/api/orders', '/api/health'];
+            const ep = endpoints[Math.floor(Math.random() * endpoints.length)];
+            
+            try {
+                const res = await fetch(ep);
+                if (res.status === 200) {
+                    count200++;
+                    document.getElementById('stat-200').innerText = count200;
+                    logMessage(200, `Accepted request to ${ep}`);
+                } else if (res.status === 429) {
+                    count429++;
+                    document.getElementById('stat-429').innerText = count429;
+                    logMessage(429, `RATE LIMITED (Static Threshold Exceeded) on ${ep}`);
+                }
+                updateRejectionRate();
+                chartDataAccepted.push(count200);
+                chartDataRejected.push(count429);
+            } catch (err) {
+                logMessage('ERR', `Network error contacting gateway`);
+            }
+        }
+
+        function updateRejectionRate() {
+            const total = count200 + count429;
+            if (total > 0) {
+                const rate = ((count429 / total) * 100).toFixed(1);
+                document.getElementById('stat-rejection-rate').innerText = rate + '%';
+            }
+        }
+
+        function startTrafficBurst() {
+            if (burstInterval) clearInterval(burstInterval);
+            const rps = parseInt(document.getElementById('rate-slider').value);
+            const intervalMs = Math.floor(1000 / rps);
+            
+            document.getElementById('burst-btn').innerText = 'Bursting Traffic...';
+            logMessage('INFO', `Started traffic generator at target rate: ${rps} req/sec`);
+            
+            burstInterval = setInterval(() => {
+                sendRequest();
+            }, intervalMs);
+        }
+
+        function stopTrafficBurst() {
+            if (burstInterval) {
+                clearInterval(burstInterval);
+                burstInterval = null;
+                document.getElementById('burst-btn').innerText = 'Start Live Burst';
+                logMessage('INFO', `Stopped traffic generator.`);
+            }
+        }
+
+        async function testSingleEndpoint(ep) {
+            logMessage('REQ', `Testing single request to ${ep}...`);
+            await sendRequest();
+        }
+
+        // Chart setup
+        const ctx = document.getElementById('trafficChart').getContext('2d');
+        const labels = Array.from({length: 15}, (_, i) => `${(15 - i) * 2}s ago`);
+        const chartDataAccepted = Array(15).fill(0);
+        const chartDataRejected = Array(15).fill(0);
+
+        const chart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Accepted (200 OK)',
+                        data: chartDataAccepted,
+                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        tension: 0.3,
+                        fill: true
+                    },
+                    {
+                        label: 'Rejected (429 Limit)',
+                        data: chartDataRejected,
+                        borderColor: '#ef4444',
+                        backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                        tension: 0.3,
+                        fill: true
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { labels: { color: '#94a3b8' } } },
+                scales: {
+                    x: { ticks: { color: '#64748b' }, grid: { color: 'rgba(255,255,255,0.05)' } },
+                    y: { ticks: { color: '#64748b' }, grid: { color: 'rgba(255,255,255,0.05)' } }
+                }
+            }
+        });
+
+        setInterval(() => {
+            chart.update();
+        }, 2000);
+    </script>
+</body>
+</html>

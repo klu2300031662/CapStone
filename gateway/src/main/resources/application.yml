@@ -1,0 +1,40 @@
+server:
+  port: ${PORT:8082}
+
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    gateway:
+      routes:
+        - id: backend-route
+          uri: ${BACKEND_URI:http://localhost:8081}
+          predicates:
+            - Path=/api/**
+          filters:
+            - name: StaticRateLimiter
+              args:
+                bucketKey: global
+
+gateway:
+  static-request-limit: ${STATIC_REQUEST_LIMIT:10}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics
+  endpoint:
+    prometheus:
+      enabled: true
+    health:
+      show-details: always
+  metrics:
+    tags:
+      application: ${spring.application.name}
+
+logging:
+  level:
+    root: INFO
+    com.capstone.gateway: INFO
+    org.springframework.cloud.gateway: INFO
