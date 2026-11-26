@@ -1,0 +1,48 @@
+# Application Registry Configuration
+# Add or remove applications here without changing gateway code.
+# Each application gets its own independent adaptive concurrency controller.
+
+applications:
+  app_a:
+    name: "Application A - Normal Service"
+    base_url: "http://localhost:8001"
+    docker_base_url: "http://app-a:8001"
+    initial_concurrency: 10
+    min_concurrency: 2
+    max_concurrency: 50
+    enabled: true
+    timeout_seconds: 10.0
+    description: "Normal response service with configurable delay"
+
+  app_b:
+    name: "Application B - Configurable Stress Service"
+    base_url: "http://localhost:8002"
+    docker_base_url: "http://app-b:8002"
+    initial_concurrency: 10
+    min_concurrency: 2
+    max_concurrency: 50
+    enabled: true
+    timeout_seconds: 10.0
+    description: "Configurable slow/failure service for demonstrating overload"
+
+# Gateway-wide settings
+gateway:
+  host: "0.0.0.0"
+  port: 8000
+  global_concurrency_cap: 200
+  admin_api_key: "gateway-admin-secret-key-change-in-production"
+  mode: "adaptive"  # "adaptive" or "static"
+
+# Adaptive controller settings (applied per application)
+controller:
+  evaluation_interval_seconds: 5.0
+  target_latency_ms: 200.0
+  latency_threshold_multiplier: 1.5
+  error_rate_threshold: 0.1
+  additive_increase_step: 1
+  multiplicative_decrease_factor: 0.75
+  min_samples_required: 5
+  window_size_seconds: 30.0
+  max_increase_per_cycle: 3
+  max_decrease_per_cycle: 10
+  smoothing_factor: 0.3

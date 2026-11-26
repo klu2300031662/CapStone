@@ -1,0 +1,107 @@
+# ============================================================
+# docker-compose.yml — Adaptive Traffic Protection Platform
+# B.Tech Capstone Project
+#
+# Usage:
+#   docker compose up --build        # build and start all services
+#   docker compose up --build -d     # run in detached (background) mode
+#   docker compose down              # stop and remove containers
+#   docker compose logs -f gateway   # tail gateway logs
+# ============================================================
+
+version: "3.9"
+
+services:
+
+  # ----------------------------------------------------------
+  # App A — Simulated backend application (port 8001)
+  # ----------------------------------------------------------
+  app-a:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: uvicorn applications.app_a:app --host 0.0.0.0 --port 8001
+    ports:
+      - "8001:8001"
+    environment:
+      APP_A_PORT: "8001"
+      LOG_LEVEL: "INFO"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8001/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      start_period: 15s
+      retries: 3
+    restart: unless-stopped
+
+  # ----------------------------------------------------------
+  # App B — Simulated backend application with tuneable delay
+  #          (port 8002)
+  # ----------------------------------------------------------
+  app-b:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: uvicorn applications.app_b:app --host 0.0.0.0 --port 8002
+    ports:
+      - "8002:8002"
+    environment:
+      APP_B_PORT: "8002"
+      LOG_LEVEL: "INFO"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8002/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      start_period: 15s
+      retries: 3
+    restart: unless-stopped
+
+  # ----------------------------------------------------------
+  # Gateway — Adaptive traffic controller (port 8000)
+  # Waits for app-a and app-b to be healthy before starting.
+  # ----------------------------------------------------------
+  gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: uvicorn gateway.main:app --host 0.0.0.0 --port 8000
+    ports:
+      - "8000:8000"
+    depends_on:
+      app-a:
+        condition: service_healthy
+      app-b:
+        condition: service_healthy
+    environment:
+      RUNNING_IN_DOCKER: "true"
+      APP_A_BASE_URL: "http://app-a:8001"
+      APP_B_BASE_URL: "http://app-b:8002"
+      GATEWAY_MODE: "adaptive"
+      ADMIN_API_KEY: "gateway-admin-secret-key-change-in-production"
+      LOG_LEVEL: "INFO"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      start_period: 15s
+      retries: 3
+    restart: unless-stopped
+
+  # ----------------------------------------------------------
+  # Dashboard — Streamlit monitoring UI (port 8501)
+  # Waits for the gateway to be healthy before starting.
+  # ----------------------------------------------------------
+  dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: streamlit run dashboard/dashboard.py --server.port 8501 --server.address 0.0.0.0
+    ports:
+      - "8501:8501"
+    depends_on:
+      gateway:
+        condition: service_healthy
+    environment:
+      DASHBOARD_GATEWAY_URL: "http://gateway:8000"
+      ADMIN_API_KEY: "gateway-admin-secret-key-change-in-production"
+    restart: unless-stopped
